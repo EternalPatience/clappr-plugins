@@ -1,0 +1,51 @@
+.player-click-to-pause {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  z-index: 4;
+
+  .icon-wrapper {
+    display: none;
+    opacity: 0.75;
+    transition: opacity 0.1s ease;
+    background-color: rgba(0, 0, 0, 0.4);
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin: 0;
+  }
+
+  .pause-button,
+  .play-button {
+    display: none;
+  }
+
+  .icon-wrapper svg {
+    width: 150px;
+    height: 150px;
+    position: relative;
+    left: 10%;
+    padding: 12%;
+    path { fill: #fff; }
+  }
+
+  .pause-button svg {
+    left: 0;
+  }
+
+  .icon-wrapper[data-pause],
+  .icon-wrapper[data-play] {
+    display: block;
+  }
+
+  .icon-wrapper[data-pause] .pause-button {
+    display:block;
+  }
+
+  .icon-wrapper[data-play] .play-button {
+    display:block;
+  }
+}
