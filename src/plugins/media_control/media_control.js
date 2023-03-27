@@ -127,6 +127,7 @@ export default class MediaControl extends UICorePlugin {
     this.listenTo(this.container, Events.CONTAINER_PLAY, this.changeTogglePlay)
     this.listenTo(this.container, Events.CONTAINER_PAUSE, this.changeTogglePlay)
     this.listenTo(this.container, Events.CONTAINER_STOP, this.changeTogglePlay)
+    this.listenTo(this.container, Events.CONTAINER_CLICK, this.show)
     this.listenTo(this.container, Events.CONTAINER_DBLCLICK, this.toggleFullscreen)
     this.listenTo(this.container, Events.CONTAINER_TIMEUPDATE, this.onTimeUpdate)
     this.listenTo(this.container, Events.CONTAINER_PROGRESS, this.updateProgressBar)
