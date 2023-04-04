@@ -45,22 +45,37 @@ export default class MediaControl extends UICorePlugin {
 
   get events() {
     return {
+      'touchend .media-control-layer[data-controls]': 'resetHideTimer',
       'click [data-play]': 'play',
+      'touchend [data-play]': 'play',
       'click [data-pause]': 'pause',
+      'touchend [data-pause]': 'pause',
       'click [data-playpause]': 'togglePlayPause',
+      'touchend [data-playpause]': 'togglePlayPause',
       'click [data-stop]': 'stop',
+      'touchend [data-stop]': 'stop',
       'click [data-playstop]': 'togglePlayStop',
+      'touchend [data-playstop]': 'togglePlayStop',
       'click [data-fullscreen]': 'toggleFullscreen',
+      'touchend [data-fullscreen]': 'toggleFullscreen',
       'click .bar-container[data-seekbar]': 'seek',
+      'touchend .bar-container[data-seekbar]': 'seek',
       'click .bar-container[data-volume]': 'onVolumeClick',
+      'touchend .bar-container[data-volume]': 'onVolumeClick',
       'click .drawer-icon[data-volume]': 'toggleMute',
+      'touchend .drawer-icon[data-volume]': 'toggleMute',
       'mouseenter .drawer-container[data-volume]': 'showVolumeBar',
       'mouseleave .drawer-container[data-volume]': 'hideVolumeBar',
       'mousedown .bar-container[data-volume]': 'startVolumeDrag',
+      'touchstart .bar-container[data-volume]': 'startVolumeDrag',
       'mousemove .bar-container[data-volume]': 'mousemoveOnVolumeBar',
+      'touchmove .bar-container[data-volume]': 'mousemoveOnVolumeBar',
       'mousedown .bar-scrubber[data-seekbar]': 'startSeekDrag',
+      'touchstart .bar-container[data-seekbar]': 'startSeekDrag',
       'mousemove .bar-container[data-seekbar]': 'mousemoveOnSeekBar',
+      'touchmove .bar-container[data-seekbar]': 'mousemoveOnSeekBar',
       'mouseleave .bar-container[data-seekbar]': 'mouseleaveOnSeekBar',
+      'touchend .bar-container[data-seekbar]': 'mouseleaveOnSeekBar',
       'mouseenter .media-control-layer[data-controls]': 'setUserKeepVisible',
       'mouseleave .media-control-layer[data-controls]': 'resetUserKeepVisible'
     }
@@ -100,8 +115,15 @@ export default class MediaControl extends UICorePlugin {
 
     this.stopDragHandler = (event) => this.stopDrag(event)
     this.updateDragHandler = (event) => this.updateDrag(event)
-    $(document).bind('mouseup', this.stopDragHandler)
-    $(document).bind('mousemove', this.updateDragHandler)
+    $(document).bind({
+      'mouseup': this.stopDragHandler,
+      'touchend': this.stopDragHandler
+    })
+    $(document).bind({
+      'mousemove': this.updateDragHandler,
+      'touchmove': this.updateDragHandler
+    })
+    this.hideTimeout = 2000
   }
 
   getExternalInterface() {
@@ -238,7 +260,8 @@ export default class MediaControl extends UICorePlugin {
 
   mousemoveOnSeekBar(event) {
     if (this.settings.seekEnabled) {
-      const offsetX = event.pageX - this.$seekBarContainer.offset().left - (this.$seekBarHover.width() / 2)
+      const pageX = event.touches ? event.touches[0].pageX : event.pageX
+      const offsetX = pageX - this.$seekBarContainer.offset().left - (this.$seekBarHover.width() / 2)
       this.$seekBarHover.css({ left: offsetX })
     }
     this.trigger(Events.MEDIACONTROL_MOUSEMOVE_SEEKBAR, event)
@@ -303,7 +326,8 @@ export default class MediaControl extends UICorePlugin {
   updateDrag(event) {
     if (this.draggingSeekBar) {
       event.preventDefault()
-      const offsetX = event.pageX - this.$seekBarContainer.offset().left
+      const pageX = event.touches ? event.touches[0].pageX : event.pageX
+      const offsetX = pageX - this.$seekBarContainer.offset().left
       let pos = offsetX / this.$seekBarContainer.width() * 100
       pos = Math.min(100, Math.max(pos, 0))
       this.setSeekPercentage(pos)
@@ -314,7 +338,8 @@ export default class MediaControl extends UICorePlugin {
   }
 
   getVolumeFromUIEvent(event) {
-    const offsetY = event.pageX - this.$volumeBarContainer.offset().left
+    const pageX = event.changedTouches ? event.changedTouches[0].pageX : event.pageX
+    const offsetY = pageX - this.$volumeBarContainer.offset().left
     const volumeFromUI = (offsetY / this.$volumeBarContainer.width()) * 100
     return volumeFromUI
   }
@@ -427,7 +452,8 @@ export default class MediaControl extends UICorePlugin {
 
   seek(event) {
     if (!this.settings.seekEnabled) return
-    const offsetX = event.pageX - this.$seekBarContainer.offset().left
+    const pageX = event.changedTouches ? event.changedTouches[0].pageX : event.pageX
+    const offsetX = pageX - this.$seekBarContainer.offset().left
     let pos = offsetX / this.$seekBarContainer.width() * 100
     pos = Math.min(100, Math.max(pos, 0))
     this.container && this.container.seekPercentage(pos)
@@ -458,7 +484,6 @@ export default class MediaControl extends UICorePlugin {
   show(event) {
     if (this.disabled) return
 
-    const timeout = 2000
     let mousePointerMoved = event && (event.clientX !== this.lastMouseX && event.clientY !== this.lastMouseY)
     if (!event || mousePointerMoved || navigator.userAgent.match(/firefox/i)) {
       clearTimeout(this.hideId)
@@ -466,7 +491,7 @@ export default class MediaControl extends UICorePlugin {
       this.trigger(Events.MEDIACONTROL_SHOW, this.name)
       this.container && this.container.trigger(Events.CONTAINER_MEDIACONTROL_SHOW, this.name)
       this.$el.removeClass('media-control-hide')
-      this.hideId = setTimeout(() => this.hide(), timeout)
+      this.hideId = setTimeout(() => this.hide(), this.hideTimeout)
       if (event) {
         this.lastMouseX = event.clientX
         this.lastMouseY = event.clientY
@@ -476,10 +501,17 @@ export default class MediaControl extends UICorePlugin {
     this.updateCursorStyle(showing)
   }
 
+  resetHideTimer(e) {
+    // cancel mouse events
+    e.preventDefault()
+    clearTimeout(this.hideId)
+    this.hideId = setTimeout(() => this.hide(), this.hideTimeout)
+  }
+
   hide(delay = 0) {
     if (!this.isVisible()) return
 
-    const timeout = delay || 2000
+    const timeout = delay || this.hideTimeout
     clearTimeout(this.hideId)
     if (!this.disabled && this.options.hideMediaControl === false) return
 
@@ -647,8 +679,14 @@ export default class MediaControl extends UICorePlugin {
   }
 
   destroy() {
-    $(document).unbind('mouseup', this.stopDragHandler)
-    $(document).unbind('mousemove', this.updateDragHandler)
+    $(document).unbind({
+      'mouseup': this.stopDragHandler,
+      'touchend': this.stopDragHandler
+    })
+    $(document).unbind({
+      'mousemove': this.updateDragHandler,
+      'touchmove': this.updateDragHandler
+    })
     this.unbindKeyEvents()
     this.stopListening()
     super.destroy()

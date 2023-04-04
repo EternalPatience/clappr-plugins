@@ -26,6 +26,20 @@
     });
     return Constructor;
   }
+  function _defineProperty(obj, key, value) {
+    key = _toPropertyKey(key);
+    if (key in obj) {
+      Object.defineProperty(obj, key, {
+        value: value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
+    } else {
+      obj[key] = value;
+    }
+    return obj;
+  }
   function _inherits(subClass, superClass) {
     if (typeof superClass !== "function" && superClass !== null) {
       throw new TypeError("Super expression must either be null or a function");
@@ -1297,8 +1311,15 @@
       _this.updateDragHandler = function (event) {
         return _this.updateDrag(event);
       };
-      core.$(document).bind('mouseup', _this.stopDragHandler);
-      core.$(document).bind('mousemove', _this.updateDragHandler);
+      core.$(document).bind({
+        'mouseup': _this.stopDragHandler,
+        'touchend': _this.stopDragHandler
+      });
+      core.$(document).bind({
+        'mousemove': _this.updateDragHandler,
+        'touchmove': _this.updateDragHandler
+      });
+      _this.hideTimeout = 2000;
       return _this;
     }
     _createClass(MediaControl, [{
@@ -1340,26 +1361,39 @@
     }, {
       key: "events",
       get: function get() {
-        return {
+        var _ref;
+        return _ref = {
+          'touchend .media-control-layer[data-controls]': 'resetHideTimer',
           'click [data-play]': 'play',
+          'touchend [data-play]': 'play',
           'click [data-pause]': 'pause',
+          'touchend [data-pause]': 'pause',
           'click [data-playpause]': 'togglePlayPause',
+          'touchend [data-playpause]': 'togglePlayPause',
           'click [data-stop]': 'stop',
+          'touchend [data-stop]': 'stop',
           'click [data-playstop]': 'togglePlayStop',
+          'touchend [data-playstop]': 'togglePlayStop',
           'click [data-fullscreen]': 'toggleFullscreen',
+          'touchend [data-fullscreen]': 'toggleFullscreen',
           'click .bar-container[data-seekbar]': 'seek',
+          'touchend .bar-container[data-seekbar]': 'seek',
           'click .bar-container[data-volume]': 'onVolumeClick',
+          'touchend .bar-container[data-volume]': 'onVolumeClick',
           'click .drawer-icon[data-volume]': 'toggleMute',
+          'touchend .drawer-icon[data-volume]': 'toggleMute',
           'mouseenter .drawer-container[data-volume]': 'showVolumeBar',
           'mouseleave .drawer-container[data-volume]': 'hideVolumeBar',
           'mousedown .bar-container[data-volume]': 'startVolumeDrag',
+          'touchstart .bar-container[data-volume]': 'startVolumeDrag',
           'mousemove .bar-container[data-volume]': 'mousemoveOnVolumeBar',
+          'touchmove .bar-container[data-volume]': 'mousemoveOnVolumeBar',
           'mousedown .bar-scrubber[data-seekbar]': 'startSeekDrag',
+          'touchstart .bar-container[data-seekbar]': 'startSeekDrag',
           'mousemove .bar-container[data-seekbar]': 'mousemoveOnSeekBar',
-          'mouseleave .bar-container[data-seekbar]': 'mouseleaveOnSeekBar',
-          'mouseenter .media-control-layer[data-controls]': 'setUserKeepVisible',
-          'mouseleave .media-control-layer[data-controls]': 'resetUserKeepVisible'
-        };
+          'touchmove .bar-container[data-seekbar]': 'mousemoveOnSeekBar',
+          'mouseleave .bar-container[data-seekbar]': 'mouseleaveOnSeekBar'
+        }, _defineProperty(_ref, "touchend .bar-container[data-seekbar]", 'mouseleaveOnSeekBar'), _defineProperty(_ref, 'mouseenter .media-control-layer[data-controls]', 'setUserKeepVisible'), _defineProperty(_ref, 'mouseleave .media-control-layer[data-controls]', 'resetUserKeepVisible'), _ref;
       }
     }, {
       key: "template",
@@ -1535,7 +1569,8 @@
       key: "mousemoveOnSeekBar",
       value: function mousemoveOnSeekBar(event) {
         if (this.settings.seekEnabled) {
-          var offsetX = event.pageX - this.$seekBarContainer.offset().left - this.$seekBarHover.width() / 2;
+          var pageX = event.touches ? event.touches[0].pageX : event.pageX;
+          var offsetX = pageX - this.$seekBarContainer.offset().left - this.$seekBarHover.width() / 2;
           this.$seekBarHover.css({
             left: offsetX
           });
@@ -1612,7 +1647,8 @@
       value: function updateDrag(event) {
         if (this.draggingSeekBar) {
           event.preventDefault();
-          var offsetX = event.pageX - this.$seekBarContainer.offset().left;
+          var pageX = event.touches ? event.touches[0].pageX : event.pageX;
+          var offsetX = pageX - this.$seekBarContainer.offset().left;
           var pos = offsetX / this.$seekBarContainer.width() * 100;
           pos = Math.min(100, Math.max(pos, 0));
           this.setSeekPercentage(pos);
@@ -1624,7 +1660,8 @@
     }, {
       key: "getVolumeFromUIEvent",
       value: function getVolumeFromUIEvent(event) {
-        var offsetY = event.pageX - this.$volumeBarContainer.offset().left;
+        var pageX = event.changedTouches ? event.changedTouches[0].pageX : event.pageX;
+        var offsetY = pageX - this.$volumeBarContainer.offset().left;
         var volumeFromUI = offsetY / this.$volumeBarContainer.width() * 100;
         return volumeFromUI;
       }
@@ -1752,7 +1789,8 @@
       key: "seek",
       value: function seek(event) {
         if (!this.settings.seekEnabled) return;
-        var offsetX = event.pageX - this.$seekBarContainer.offset().left;
+        var pageX = event.changedTouches ? event.changedTouches[0].pageX : event.pageX;
+        var offsetX = pageX - this.$seekBarContainer.offset().left;
         var pos = offsetX / this.$seekBarContainer.width() * 100;
         pos = Math.min(100, Math.max(pos, 0));
         this.container && this.container.seekPercentage(pos);
@@ -1789,7 +1827,6 @@
       value: function show(event) {
         var _this6 = this;
         if (this.disabled) return;
-        var timeout = 2000;
         var mousePointerMoved = event && event.clientX !== this.lastMouseX && event.clientY !== this.lastMouseY;
         if (!event || mousePointerMoved || navigator.userAgent.match(/firefox/i)) {
           clearTimeout(this.hideId);
@@ -1799,7 +1836,7 @@
           this.$el.removeClass('media-control-hide');
           this.hideId = setTimeout(function () {
             return _this6.hide();
-          }, timeout);
+          }, this.hideTimeout);
           if (event) {
             this.lastMouseX = event.clientX;
             this.lastMouseY = event.clientY;
@@ -1809,19 +1846,30 @@
         this.updateCursorStyle(showing);
       }
     }, {
+      key: "resetHideTimer",
+      value: function resetHideTimer(e) {
+        var _this7 = this;
+        // cancel mouse events
+        e.preventDefault();
+        clearTimeout(this.hideId);
+        this.hideId = setTimeout(function () {
+          return _this7.hide();
+        }, this.hideTimeout);
+      }
+    }, {
       key: "hide",
       value: function hide() {
-        var _this7 = this;
+        var _this8 = this;
         var delay = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
         if (!this.isVisible()) return;
-        var timeout = delay || 2000;
+        var timeout = delay || this.hideTimeout;
         clearTimeout(this.hideId);
         if (!this.disabled && this.options.hideMediaControl === false) return;
         var hasKeepVisibleRequested = this.userKeepVisible || this.keepVisible;
         var hasDraggingAction = this.draggingSeekBar || this.draggingVolumeBar;
         if (!this.disabled && (delay || hasKeepVisibleRequested || hasDraggingAction)) {
           this.hideId = setTimeout(function () {
-            return _this7.hide();
+            return _this8.hide();
           }, timeout);
         } else {
           this.trigger(core.Events.MEDIACONTROL_HIDE, this.name);
@@ -1937,44 +1985,44 @@
     }, {
       key: "bindKeyAndShow",
       value: function bindKeyAndShow(key, callback) {
-        var _this8 = this;
+        var _this9 = this;
         this.kibo.down(key, function () {
-          _this8.show();
+          _this9.show();
           return callback();
         });
       }
     }, {
       key: "bindKeyEvents",
       value: function bindKeyEvents() {
-        var _this9 = this;
+        var _this10 = this;
         if (core.Browser.isMobile || this.options.disableKeyboardShortcuts) return;
         this.unbindKeyEvents();
         this.kibo = new Kibo(this.options.focusElement || this.options.parentElement);
         this.bindKeyAndShow('space', function () {
-          return _this9.togglePlayPause();
+          return _this10.togglePlayPause();
         });
         this.bindKeyAndShow('left', function () {
-          return _this9.seekRelative(-5);
+          return _this10.seekRelative(-5);
         });
         this.bindKeyAndShow('right', function () {
-          return _this9.seekRelative(5);
+          return _this10.seekRelative(5);
         });
         this.bindKeyAndShow('shift left', function () {
-          return _this9.seekRelative(-10);
+          return _this10.seekRelative(-10);
         });
         this.bindKeyAndShow('shift right', function () {
-          return _this9.seekRelative(10);
+          return _this10.seekRelative(10);
         });
         this.bindKeyAndShow('shift ctrl left', function () {
-          return _this9.seekRelative(-15);
+          return _this10.seekRelative(-15);
         });
         this.bindKeyAndShow('shift ctrl right', function () {
-          return _this9.seekRelative(15);
+          return _this10.seekRelative(15);
         });
         var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
         keys.forEach(function (i) {
-          _this9.bindKeyAndShow(i, function () {
-            _this9.settings.seekEnabled && _this9.container && _this9.container.seekPercentage(i * 10);
+          _this10.bindKeyAndShow(i, function () {
+            _this10.settings.seekEnabled && _this10.container && _this10.container.seekPercentage(i * 10);
           });
         });
       }
@@ -2011,8 +2059,14 @@
     }, {
       key: "destroy",
       value: function destroy() {
-        core.$(document).unbind('mouseup', this.stopDragHandler);
-        core.$(document).unbind('mousemove', this.updateDragHandler);
+        core.$(document).unbind({
+          'mouseup': this.stopDragHandler,
+          'touchend': this.stopDragHandler
+        });
+        core.$(document).unbind({
+          'mousemove': this.updateDragHandler,
+          'touchmove': this.updateDragHandler
+        });
         this.unbindKeyEvents();
         this.stopListening();
         _get(_getPrototypeOf(MediaControl.prototype), "destroy", this).call(this);
@@ -2033,7 +2087,7 @@
     }, {
       key: "render",
       value: function render() {
-        var _this10 = this;
+        var _this11 = this;
         var timeout = this.options.hideMediaControlDelay || 2000;
         this.settings && this.$el.html(this.template({
           settings: this.settings
@@ -2048,7 +2102,7 @@
         this.changeTogglePlay();
         if (this.container) {
           this.hideId = setTimeout(function () {
-            return _this10.hide();
+            return _this11.hide();
           }, timeout);
           this.disabled && this.hide();
         }
@@ -2065,13 +2119,13 @@
         this.displayedSeekBarPercentage = null;
         this.setSeekPercentage(previousSeekPercentage);
         setTimeout(function () {
-          !_this10.settings.seekEnabled && _this10.$seekBarContainer.addClass('seek-disabled');
-          !core.Browser.isMobile && !_this10.options.disableKeyboardShortcuts && _this10.bindKeyEvents();
-          _this10.playerResize({
-            width: _this10.options.width,
-            height: _this10.options.height
+          !_this11.settings.seekEnabled && _this11.$seekBarContainer.addClass('seek-disabled');
+          !core.Browser.isMobile && !_this11.options.disableKeyboardShortcuts && _this11.bindKeyEvents();
+          _this11.playerResize({
+            width: _this11.options.width,
+            height: _this11.options.height
           });
-          _this10.hideVolumeBar(0);
+          _this11.hideVolumeBar(0);
         }, 0);
         this.parseColors();
         this.highDefinitionUpdate(this.isHD);
