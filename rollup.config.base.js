@@ -5,6 +5,7 @@ const commonjs = require('@rollup/plugin-commonjs')
 const html = require('rollup-plugin-html')
 const namedDirectory = require('rollup-plugin-named-directory')
 const postcss = require('rollup-plugin-postcss')
+const postcssUrl = require('postcss-url')
 const replace = require('@rollup/plugin-replace')
 const { nodeResolve } = require('@rollup/plugin-node-resolve')
 const svg = require('rollup-plugin-svg')
@@ -21,6 +22,10 @@ const postcssOptions = {
     }]
   ],
   inject: false,
+  plugins: [postcssUrl({
+    url: 'copy'
+  })],
+  to: 'dist'
 }
 
 const baseConfig = {
